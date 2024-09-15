@@ -2,8 +2,26 @@ import {
     show, animate_rune,
     square,
     white,
-    beside, stack
+    beside, stack,
+    repeat_pattern
 } from 'rune'; 
+
+// rune stuff is at the top to be easily all disabled
+// for no module environments (i.e. no internet)
+// convert balanced binary tree into runes
+const c = p => 
+    is_function(p)
+    ? beside(
+        stack(
+            c(p(true)(true)),
+            c(p(true)(false))
+        ), stack(
+            c(p(false)(true)),
+            c(p(false)(false))
+        )
+    )
+    : p ? square : white(square);
+// */
 
 // alternate pair definition, optimised for tokens
 // head(pair(...)) === p(...)(true)
@@ -22,6 +40,8 @@ const nul = _ => nul;
 // this is useful to pass in circumstances that expect a list/tree
 // to eat up the head/tails
 
+
+// debug display function
 const d = l => {
     if (is_function(l)) {
         // nul check
@@ -39,75 +59,37 @@ const d = l => {
     return l;
 };
 
-// convert balanced binary tree into runes
-const c = p => 
-    is_function(p)
-    ? beside(
-        stack(
-            c(p(true)(true)),
-            c(p(true)(false))
-        ), stack(
-            c(p(false)(true)),
-            c(p(false)(false))
-        )
-    )
-    : p ? square : white(square);
-
-// traverse balanced binary tree `s` according to `l`
-const t_n = (s, l) => is_function(l) ? t(s(l(true)), l(false)) : s(l);
-
 // traverse balanced binary tree `s` in reverse order of `l`
-const t = (s, l) => is_function(l) ? t(s, l(false))(l(true)) : s(l);
+const t = (s, l) => is_function(l) ? t(s, l(false))(l(true)) : s;
 
-// toggle first `b` in `l`,
-// but tries to eat 2 elements instead of 1 after comparision
-// (effectively checking every second element except last element)
-// and traverse element in `s`
-// according to this changed `l` reversed and list `e`
-// not found: false
-const f = 
-    (b, l, s, e) => 
-        is_function(display(l, 'aa')) && is_function(display(l(false)))
-        ? (l(true) ? b : !b) // no comparing booleans???
-            ? t_n(t(display(s, 'aaa'), d(l(false)))(display(!b, 'b')), d(e))
-            : f(b, l(false)(false), s, p(l(false)(true), p(l(true), e)))
-        : false;
-
-// m: bool - whether we are doing -1, otherwise +1
-// l: list[bool] - the binary number in reverse order
-const pm1 = (l, m) =>
-    is_function(l)
-    ? (l(true) ? !m : m) // xor
-    ? p(m, pm1(l(false), m)) // carry. m === !l(true)
-    : p(!m, l(false)) // carry end. m === l(true)
-    : undefined; // overflow, tag undefined
-
-// combination of t with 2 different change1, alternated between
+// combination of t with c1 (change1) that only applies once every 2 
+// recurses into a different t2c? and back agin
+// change1 adds or subtracts based on m
+// m: minus, so true - sub, false - add, undefined - no change
 // treat l as terminated list of 2 binary numbers alternating reversed
-// change1 adds or subtracts based
-// f, f_a - function to recurse into, pass t2pm1 to recurse into itself
+// f, function to recurse into
 // if overflow returns nul (note: is_function(nul) === true)
 // else element of s (assuming proper length of l)
 // warning - length too short cannot be distingushed
 // from overflow / underflow without stringification
-const t2c1 = (s, l, m, m_a, f, f_a) =>
-    is_function(d(display(l, 'c1')))
-    ? (l(true) ? !m : m) // xor
-    ? f(s, l(false), m_a, m, f_a, f)(m) // carry. m === !l(true). alternate
-    // carry end. m === l(true), early end
-    : f(s, l(false), m_a, display(m, 'carry end'), t2c0, f)(!m)
-    : display(nul); // overflow
+const t2c1 = m => 
+    (s, l, f) =>
+        is_undefined(m)
+        ? is_function(l)
+        ? f(s, l(false), t2c0)(l(true))
+        : is_undefined(f) // true when | with f === t2c0
+        ? s // this stuff wont be     \/ needed if we could compare functions
+        : f(s, 0, undefined) // f === t2c1, !is_function(l) => overflow 
+        : is_function(l)
+        ? (l(true) ? !m : m) // xor
+        ? f(s, l(false), t2c1(m))(m) // carry. m === !l(true). alternate
+        // carry end. m === l(true), early end
+        : f(s, l(false), t2c0)(!m)
+        : nul; // overflow;
 
 // recurse deeper without modification (change 0)
-const t2c0 = (s, l, m, m_a, f, f_a) =>
-    // f_a === t2c0
-    is_function(d(display(l, 'c0')))
-    ? f(s, l(false), m_a, m, f_a, f)(l(true))
-    : is_undefined(m) // true when | with f === t2c0
-    ? s //                        \/ 
-    : f(0, 0, undefined, 0, 0, 0); // f === t2c1, !is_function(l) => overflow 
-// note: can early end by comparing if f === t2c0
-// IF WE COULD COMPARE FUNCTIONS
+const t2c0 = t2c1(undefined);
+    
 
 
 // when passed in as a list/binary tree,
@@ -116,27 +98,37 @@ const _m = l => b => is_undefined(b) ? l : _m(p(b, l));
 const mock = _m(undefined);
 
 d(
-    t2c1(
+    t2c1(false)(
         mock,
-        p(true, p(true, p(true, p(true, p(true, undefined))))),
-        false, true, t2c1, t2c1
+        p(true, p(true, p(true, p(true, p(false, undefined))))),
+        t2c1(true)
     )(undefined)
 );
+
+
+
+// no cast
+const int = b => !is_function(b) && b ? 1 : 0;
+const i = f => f(true) + f(false) + f(undefined);
+
 const n = s => {
-    const g = (b, n, f) => {
+    show(c(s));
+    const g = (l, n) => {
         if (n === 0) {
-            return f(l);
+            d(l);
+            const total = i(a => i(b => int(t2c1(a)(s, l, t2c1(b)))));
+            display(total);
+            return display(total === 3 || total === 4 && t(s, l), 'new');
         } else {
-            g(true, n - 1, f);
-            g(false, n - 1, f);
+            return p(g(p(true, l), n - 1), g(p(false, l), n - 1));
         }
     };
-    const l = p(false, p(false, p(true, true)));
-    t(s, p(!l(true), l(false)));
-    t(s, p(l(true), p(!l(false), l(false)(false))));
-    //f(l(true), )
-    
+    return g(0, de);
 };
+
+const de = 4;
+
+ /*
 const s = p(
     p(
         p(
@@ -159,6 +151,18 @@ const s = p(
         )
     )
 );
+// */
+// /*
+const s = p(
+    p(
+        p(p(false, false), p(false, false)),
+        p(p(false, false), p(true, false))
+    ), p(
+        p(p(false, false), p(false, false)),
+        p(p(true, false), p(true, false))
+    )
+);
+// */
 
-show(c(s));
-display(t(s, p(false, p(true, p(true, p(true, p(true, true)))))));
+show(c(repeat_pattern(29, n, s)));
+// show(c(s));
