@@ -9,6 +9,7 @@ import {
 // rune stuff is at the top to be easily all disabled
 // for no module environments (i.e. no internet)
 // convert balanced binary tree into runes
+// tree is treated as a H tree
 const c = p => 
     is_function(p)
     ? beside(
@@ -35,13 +36,14 @@ const p = (x, y) => c => c ? x : y;
 
 // nul - list of itself
 const nul = _ => nul;
-// THIS NUL IS VERY DIFFERENT FROM A NORMAL null!
+// THIS nul IS VERY DIFFERENT FROM A NORMAL null!
 // for one it passes the pair check (is_function)
 // this is useful to pass in circumstances that expect a list/tree
 // to eat up the head/tails
 
 
 // debug display function
+/*
 const d = l => {
     if (is_function(l)) {
         // nul check
@@ -58,10 +60,12 @@ const d = l => {
     }
     return l;
 };
+*/
 
 // traverse balanced binary tree `s` in reverse order of `l`
 const t = (s, l) => is_function(l) ? t(s, l(false))(l(true)) : s;
 
+// heart of the system - used to find surrounding squares
 // combination of t with c1 (change1) that only applies once every 2 
 // recurses into a different t2c? and back agin
 // change1 adds or subtracts based on m
@@ -91,19 +95,12 @@ const t2c1 = m =>
 const t2c0 = t2c1(undefined);
     
 
-
+/*
 // when passed in as a list/binary tree,
 // returns a list of the booleans passed to it reversed (tagged undefined)
 const _m = l => b => is_undefined(b) ? l : _m(p(b, l));
 const mock = _m(undefined);
-
-d(
-    t2c1(false)(
-        mock,
-        p(true, p(true, p(true, p(true, p(false, undefined))))),
-        t2c1(true)
-    )(undefined)
-);
+*/
 
 
 
@@ -111,48 +108,66 @@ d(
 const int = b => !is_function(b) && b ? 1 : 0;
 const i = f => f(true) + f(false) + f(undefined);
 
-const n = s => {
-    show(c(s));
-    const g = (l, n) => {
-        if (n === 0) {
-            d(l);
-            const total = i(a => i(b => int(t2c1(a)(s, l, t2c1(b)))));
-            display(total);
-            return display(total === 3 || total === 4 && t(s, l), 'new');
-        } else {
-            return p(g(p(true, l), n - 1), g(p(false, l), n - 1));
-        }
-    };
-    return g(0, de);
+
+
+const n = (ti, s) => {
+    // function to determine new square
+    // l is path to current square
+    // to is filled squares in 3x3 centered on current
+    // this implemenation is Conway's Game of Life
+    const test = (l, to) => to === 3 || to === 4 && t(s, l);
+
+    const g = (l, n) => 
+        n === 0
+        ? test(l, i(a => i(b => int(t2c1(a)(s, l, t2c1(b))))))
+        : p(g(p(true, l), n - 1), g(p(false, l), n - 1));
+    return ti <= 0 ? c(s) : n(ti - 1, g(0, de));
 };
 
-const de = 4;
+const de = 6;
 
- /*
+//*
 const s = p(
     p(
         p(
-            p(p(p(false, true), p(false, true)), p(p(true, false), p(true, false))),
-            p(p(p(true, true), p(true, true)), p(p(true, false), p(true, false)))
-        ),
-        p(
-            p(p(p(false, false), p(false, false)), p(p(false, true), p(false, true))),
-            p(p(p(false, true), p(false, true)), p(p(false, false), p(false, false)))
+            p(
+                p(p(false, true), p(false, true)),
+                p(p(true, false), p(true, false))
+            ), p(
+                p(p(true, true), p(true, true)),
+                p(p(true, false), p(true, false))
+            )
+        ), p(
+            p(
+                p(p(false, false), p(false, false)),
+                p(p(false, true), p(false, true))
+            ), p(
+                p(p(false, true), p(false, true)),
+                p(p(false, false), p(false, false))
+            )
         )
-    ),
-    p(
+    ), p(
         p(
-            p(p(p(false, true), p(false, true)), p(p(true, false), p(true, false))),
-            p(p(p(true, true), p(true, true)), p(p(true, false), p(true, false)))
-        ),
-        p(
-            p(p(p(false, false), p(false, false)), p(p(true, true), p(false, true))),
-            p(p(p(false, true), p(false, true)), p(p(false, false), p(false, false)))
+            p(
+                p(p(false, true), p(false, true)),
+                p(p(true, false), p(true, false))
+            ), p(
+                p(p(true, true), p(true, true)),
+                p(p(true, false), p(true, false))
+            )
+        ), p(
+            p(
+                p(p(false, false), p(false, false)),
+                p(p(true, true), p(false, true))
+            ), p(
+                p(p(false, true), p(false, true)),
+                p(p(false, false), p(false, false))
+            )
         )
     )
 );
 // */
-// /*
+/*
 const s = p(
     p(
         p(p(false, false), p(false, false)),
@@ -164,5 +179,4 @@ const s = p(
 );
 // */
 
-show(c(repeat_pattern(29, n, s)));
-// show(c(s));
+animate_rune(14, 1, t => n(t, s));
