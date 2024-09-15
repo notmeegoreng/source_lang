@@ -2,8 +2,7 @@ import {
     show, animate_rune,
     square,
     white,
-    beside, stack,
-    repeat_pattern
+    beside, stack
 } from 'rune'; 
 
 // rune stuff is at the top to be easily all disabled
@@ -80,7 +79,7 @@ const t2c1 = m =>
     (s, l, f) =>
         is_undefined(m)
         ? is_function(l)
-        ? f(s, l(false), t2c0)(l(true))
+        ? f(s, l(false), t2c1(undefined))(l(true))
         : is_undefined(f) // true when | with f === t2c0
         ? s // this stuff wont be     \/ needed if we could compare functions
         : f(s, 0, undefined) // f === t2c1, !is_function(l) => overflow 
@@ -88,12 +87,8 @@ const t2c1 = m =>
         ? (l(true) ? !m : m) // xor
         ? f(s, l(false), t2c1(m))(m) // carry. m === !l(true). alternate
         // carry end. m === l(true), early end
-        : f(s, l(false), t2c0)(!m)
+        : f(s, l(false), t2c1(undefined))(!m)
         : nul; // overflow;
-
-// recurse deeper without modification (change 0)
-const t2c0 = t2c1(undefined);
-    
 
 /*
 // when passed in as a list/binary tree,
@@ -142,7 +137,7 @@ const s = p(
                 p(p(false, false), p(false, false)),
                 p(p(false, true), p(false, true))
             ), p(
-                p(p(false, true), p(false, true)),
+                p(p(false, true), p(true, true)),
                 p(p(false, false), p(false, false))
             )
         )
