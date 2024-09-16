@@ -1,55 +1,42 @@
+// This is arbitary sized Conway's Game of Life, in Source 1
+// Limitations: Square boards, with sides being a power of 2
+// (due to not wanting to handle special cases of chosen data structure)
+
 import {
-    show, animate_rune,
+    animate_rune,
     square,
     white,
     beside, stack
 } from 'rune'; 
-
-// rune stuff is at the top to be easily all disabled
-// for no module environments (i.e. no internet)
-// convert balanced binary tree into runes
-// tree is treated as a H tree
-const c = p => 
-    is_function(p)
-    ? beside(
-        stack(
-            c(p(true)(true)),
-            c(p(true)(false))
-        ), stack(
-            c(p(false)(true)),
-            c(p(false)(false))
-        )
-    )
-    : p ? square : white(square);
-// */
 
 // alternate pair definition, optimised for tokens
 // head(pair(...)) === p(...)(true)
 // tail(pair(...)) === p(...)(false)
 const p = (x, y) => c => c ? x : y;
 // this leads to an alternate list definitions
-// p(x0, p(x1, p(x2, x3)))
-// undelimited
-// p(x0, p(x1, p(x2, p(x3, undefined))))
-// the tail is not defined to be any specific value, can be used to tag lists
+// unterminated - p(x0, p(x1, p(x2, x3)))
+// (unused here, was used in development)
+// terminated - p(x0, p(x1, p(x2, p(x3, undefined))))
+// the tail is not defined to be any specific value
+// as long as it isnt a function its fine
 
-// nul - list of itself
-const nul = _ => nul;
-// THIS nul IS VERY DIFFERENT FROM A NORMAL null!
-// for one it passes the pair check (is_function)
+// nom 
+const nom = _ => nom;
+// WARNING! - passes the pair check (is_function)
 // this is useful to pass in circumstances that expect a list/tree
 // to eat up the head/tails
 
 
-// debug display function
+// DEBUG FUNCTIONS
 /*
+// debug display function
 const d = l => {
     if (is_function(l)) {
-        // nul check
+        // nom check
         // well i cant compare functions so
-        // more like one parameter starting with _ check
+        // more like function of one parameter starting with _ check
         if (char_at(stringify(l), 0) === '_') {
-            display('nul');
+            display('nom');
         } else {
             display(l(true), 'elem');
             d(l(false));
@@ -59,38 +46,7 @@ const d = l => {
     }
     return l;
 };
-*/
 
-// traverse balanced binary tree `s` in reverse order of `l`
-const t = (s, l) => is_function(l) ? t(s, l(false))(l(true)) : s;
-
-// heart of the system - used to find surrounding squares
-// combination of t with c1 (change1) that only applies once every 2 
-// recurses into a different t2c? and back agin
-// change1 adds or subtracts based on m
-// m: minus, so true - sub, false - add, undefined - no change
-// treat l as terminated list of 2 binary numbers alternating reversed
-// f, function to recurse into
-// if overflow returns nul (note: is_function(nul) === true)
-// else element of s (assuming proper length of l)
-// warning - length too short cannot be distingushed
-// from overflow / underflow without stringification
-const t2c1 = m => 
-    (s, l, f) =>
-        is_undefined(m)
-        ? is_function(l)
-        ? f(s, l(false), t2c1(undefined))(l(true))
-        : is_undefined(f) // true when | with f === t2c0
-        ? s // this stuff wont be     \/ needed if we could compare functions
-        : f(s, 0, undefined) // f === t2c1, !is_function(l) => overflow 
-        : is_function(l)
-        ? (l(true) ? !m : m) // xor
-        ? f(s, l(false), t2c1(m))(m) // carry. m === !l(true). alternate
-        // carry end. m === l(true), early end
-        : f(s, l(false), t2c1(undefined))(!m)
-        : nul; // overflow;
-
-/*
 // when passed in as a list/binary tree,
 // returns a list of the booleans passed to it reversed (tagged undefined)
 const _m = l => b => is_undefined(b) ? l : _m(p(b, l));
@@ -98,14 +54,56 @@ const mock = _m(undefined);
 */
 
 
+// convert balanced binary tree into runes
+// tree is treated as a H tree
+const r = p => 
+    is_function(p)
+    ? beside(
+        stack(
+            r(p(true)(true)),
+            r(p(true)(false))
+        ), stack(
+            r(p(false)(true)),
+            r(p(false)(false))
+        )
+    )
+    : p ? square : white(square);
+
+// traverse balanced binary tree `s` in reverse order of `l`
+const t = (s, l) => is_function(l) ? t(s, l(false))(l(true)) : s;
+
+// heart of the system - used to find surrounding squares
+// combination of t with c1 (change1) that only applies once every 2 bits
+// recurses into a different t2c1 instance (with possibly different m)
+// to handle the other bits, and back again
+// change1 adds or subtracts based on m
+// m - minus. true - sub, false - add, undefined - no change
+// l - terminated list of 2 least signicant bit first binary numbers
+// stored in alternating fashion
+// f - function to recurse into
+// if overflow returns nom (note: is_function(nom) === true)
+// else element of s (assuming proper length of l)
+// warning - length too short cannot be distingushed
+// from overflow / underflow without stringification
+// (solution - just dont do length too short)
+const t2c1 = m => (s, l, f) =>
+    is_undefined(m)
+    ? is_function(l)
+    ? f(s, l(false), t2c1(undefined))(l(true))
+    : is_undefined(f) // true when | if m === 0 for the given f
+    ? s // end                    \/ 
+    : f(s, 0, undefined) // m !== undefined, !is_function(l) -> overflow 
+    : is_function(l) //   (       xor      )?carry:end carry
+    ? f(s, l(false), t2c1((l(true) ? !m : m) ? m : undefined))(!l(true))
+    : nom; // overflow;
+
 
 // no cast
 const int = b => !is_function(b) && b ? 1 : 0;
 const i = f => f(true) + f(false) + f(undefined);
 
 
-
-const n = (ti, s) => {
+const n = s => ti => {
     // function to determine new square
     // l is path to current square
     // to is filled squares in 3x3 centered on current
@@ -116,12 +114,19 @@ const n = (ti, s) => {
         n === 0
         ? test(l, i(a => i(b => int(t2c1(a)(s, l, t2c1(b))))))
         : p(g(p(true, l), n - 1), g(p(false, l), n - 1));
-    return ti <= 0 ? c(s) : n(ti - 1, g(0, de));
+    
+    // The 1 here is 1/FPS
+    return ti <= 0 ? r(s) : n(g(0, depth))(ti - 1);
 };
 
-const de = 6;
 
+// Depth of the state tree
+// (2log_2(n)) where n is side length
+const depth = 6; // 4 for 4x4
+
+// State tree definition (you can change some booleans and see what happens!)
 //*
+// 8x8
 const s = p(
     p(
         p(
@@ -162,6 +167,7 @@ const s = p(
     )
 );
 // */
+// 4x4
 /*
 const s = p(
     p(
@@ -174,4 +180,6 @@ const s = p(
 );
 // */
 
-animate_rune(14, 1, t => n(t, s));
+//        Iterations
+//            | FPS (must change in n too)
+animate_rune(14, 1, n(s));
