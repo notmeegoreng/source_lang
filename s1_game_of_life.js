@@ -3,7 +3,7 @@
 // (due to not wanting to handle special cases of chosen data structure)
 
 import {
-    animate_rune,
+    animate_rune, show,
     square,
     white,
     beside, stack
@@ -28,7 +28,7 @@ const nom = _ => nom;
 
 
 // DEBUG FUNCTIONS
-/*
+//*
 // debug display function
 const d = l => {
     if (is_function(l)) {
@@ -51,7 +51,7 @@ const d = l => {
 // returns a list of the booleans passed to it reversed (tagged undefined)
 const _m = l => b => is_undefined(b) ? l : _m(p(b, l));
 const mock = _m(undefined);
-*/
+// */
 
 
 // convert balanced binary tree into runes
@@ -125,7 +125,7 @@ const n = s => ti => {
 const depth = 6; // 4 for 4x4
 
 // State tree definition (you can change some booleans and see what happens!)
-//*
+/*
 // 8x8
 const s = p(
     p(
@@ -180,6 +180,41 @@ const s = p(
 );
 // */
 
+
+
+
+
+// Convenience Functions
+// (requires Source 2 to enable list(...varargs))
+//* 
+const end = n => l => n === 0 ? l : end(n - 1)(tail(l));
+const to_s = (f0, f1, n, mat) => 
+    n === -1
+    ? head(head(mat))
+    : p(
+        to_s(f1, f0, n - 1, mat),
+        to_s(f1, f0, n - 1, f0(math_pow(2, math_floor(n / 2)))(mat))
+    );
+
+const side = math_pow(2, depth / 2);
+
+const s = to_s(
+    n => l => map(end(n), l),
+    end,
+    depth - 1,
+    list(
+        list(false, false, false, false, false, false, false, false),
+        list(false, false, false, false, false, false, false, false),
+        list(false, false, false, true, true, false, false, false),
+        list(false, false, true, true, false, false, false, false),
+        list(false, false, false, true, false, false, false, false),
+        list(false, false, false, false, false, false, false, false),
+        list(false, false, false, false, false, false, false, false),
+        list(false, false, false, false, false, false, false, false)
+    )
+);
+// */
+
 //        Iterations
 //            | FPS (must change in n too)
-animate_rune(14, 1, n(s));
+animate_rune(20, 1, n(s));
