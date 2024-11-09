@@ -28,14 +28,14 @@ const nom = _ => nom;
 
 
 // DEBUG FUNCTIONS
-//*
+/*
 // debug display function
 const d = l => {
     if (is_function(l)) {
         // nom check
         // well i cant compare functions so
         // more like function of one parameter starting with _ check
-        if (char_at(stringify(l), 0) === '_') {
+        if (arity(l) === 1 && char_at(stringify(l), 0) === '_') {
             display('nom');
         } else {
             display(l(true), 'elem');
@@ -54,8 +54,7 @@ const mock = _m(undefined);
 // */
 
 
-// convert balanced binary tree into runes
-// tree is treated as a H tree
+// convert balanced binary H tree into runes
 const r = p => 
     is_function(p)
     ? beside(
@@ -78,28 +77,32 @@ const t = (s, l) => is_function(l) ? t(s, l(false))(l(true)) : s;
 // to handle the other bits, and back again
 // change1 adds or subtracts based on m
 // m - minus. true - sub, false - add, undefined - no change
-// l - terminated list of 2 least signicant bit first binary numbers
+// l - terminated list of 2 least significant bit first binary numbers
 // stored in alternating fashion
 // f - function to recurse into
-// if overflow returns nom (note: is_function(nom) === true)
+// if (under/over)flow returns nom (note: is_function(nom) === true)
 // else element of s (assuming proper length of l)
-// warning - length too short cannot be distingushed
-// from overflow / underflow without stringification
-// (solution - just dont do length too short)
+// warning - length too short must be carefully distingushed
+// from (under/over)flow using `arity`, a check that i dont do
+// (just dont do length too short)
 const t2c1 = m => (s, l, f) =>
     is_undefined(m)
     ? is_function(l)
     ? f(s, l(false), t2c1(undefined))(l(true))
-    : is_undefined(f) // true when | if m === 0 for the given f
+    : is_undefined(f) // true when | if f.m === undefined
     ? s // end                    \/ 
-    : f(s, 0, undefined) // m !== undefined, !is_function(l) -> overflow 
+    : f(s, 0, undefined) // f.m !== undefined, !is_function(l) -> overflow 
     : is_function(l) //   (       xor      )?carry:end carry
     ? f(s, l(false), t2c1((l(true) ? !m : m) ? m : undefined))(!l(true))
-    : nom; // overflow;
+    : nom; // (under/over)flow;
 
 
 // no cast
+// treat (over/under)flow i.e. out of our square as 0
 const int = b => !is_function(b) && b ? 1 : 0;
+// treat out of bounds as 1 instead!
+// (under default GOL this does mean life spawns out of the walls)
+// const int = b => is_function(b) || b ? 1 : 0;
 const i = f => f(true) + f(false) + f(undefined);
 
 
@@ -120,13 +123,14 @@ const n = s => ti => {
 };
 
 
-// Depth of the state tree
+// Depth of the state tree is
 // (2log_2(n)) where n is side length
-const depth = 6; // 4 for 4x4
 
-// State tree definition (you can change some booleans and see what happens!)
+// Example state tree definitions
+// (you can change some booleans and see what happens!)
 /*
 // 8x8
+depth = 6;
 const s = p(
     p(
         p(
@@ -181,12 +185,19 @@ const s = p(
 // */
 
 
+// Randomiser
+// Creates a random board of given depth
+const depth = 6;
+const random = d => 
+    d === 0
+    ? math_random() < 0.5 
+    : p(random(d - 1), random(d - 1));
 
-
+const s = random(depth);
 
 // Convenience Functions
 // (requires Source 2 to enable list(...varargs))
-//* 
+/* 
 const end = n => l => n === 0 ? l : end(n - 1)(tail(l));
 const to_s = (f0, f1, n, mat) => 
     n === -1
@@ -215,6 +226,8 @@ const s = to_s(
 );
 // */
 
+
 //        Iterations
 //            | FPS (must change in n too)
 animate_rune(20, 1, n(s));
+// show(n(s)(8));
